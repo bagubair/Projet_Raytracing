@@ -3,14 +3,17 @@ import numpy as np
 
 from vecteur import Vecteur
 from scene import Scene
+from position import Position
+from camera import Camera
 
 
 def main():
     WIDTH = 3
     HEIGHT = 2
     fichier_image = "image.ppm"
+    camera = Camera(Position((0,0,5)))
 
-    imag_scen = Scene(WIDTH, HEIGHT, fichier_image)
+    imag_scen = Scene(WIDTH, HEIGHT,camera, fichier_image)
 
     rouge = np.array([1, 0, 0])
     vert = np.array([0, 1, 0])

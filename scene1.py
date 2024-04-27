@@ -82,78 +82,37 @@ class Scene:
 
 
 
-    def couleur_objet(self, obj_int ,point_intersection,int_obj_normal):
-    #    obj_color = material.color_at(hit_pos)  # Récupère la couleur de l'objet à la position du point d'impact
-       obj_color =obj_int.couleur
-       cof_amb = obj_int.ambient
-       brillance_speculaire = 50
-       a_cam = point_intersection - self.camera.position    # Vecteur du point d'impact à la caméra
-       couleur_final  = Couleur(0,0,0)
-    #  couleur_final = 
-       cof_dif = obj_int.diffuse
+    def couleur_objet(self, obj_int, point_intersection, int_obj_normal):
+        obj_color = obj_int.couleur
+        cof_amb = obj_int.ambient
+        brillance_speculaire = 50
+        a_cam = self.camera.position - point_intersection  # Vecteur du point d'impact à la caméra
+        couleur_final = obj_color
 
+        for lum in self.list_lumiere:
+            colour_lum = lum.couleur
+            norma_lum = lum.position - point_intersection
+            norma_lum = norma_lum.normalize()
+            couleur_final += self.Lumiere_diffuse(obj_color, cof_amb, colour_lum, norma_lum, int_obj_normal)
 
+        return couleur_final
 
-    #    couleur_final =  obj_color 
-       # Calcul de l'éclairage pour chaque source lumineuse de la scène
-       for lum in self.list_lumiere:
-            # colour_lum = lum.couleur  
-            # norma_lum = lum.position - point_intersection 
-            # norma_lum = norma_lum.normalize()
-            # couleur_final+=self.Lumiere_diffuse (obj_color,cof_amb ,colour_lum ,cof_dif,norma_lum ,int_obj_normal  )
-            # a_lum = Vecteur(point_intersection, lum.position - point_intersection)  # Vecteur du point d'impact à la source lumineuse
+    def Lumiere_diffuse(self, obj_color, cof_amb, colour_lum, norma_lum, norma_obj):
+        l_a = Couleur(0, 0, 0).form_couleur  # couleur ambiante
+        K_a = cof_amb   # coef. d'ambiante
+        l_i = colour_lum.form_couleur  # couleur de la lumière
+        L = norma_lum.pos  # vecteur normalisé de la lumière
+        N = norma_obj.pos  # vecteur normalisé de l'objet
 
-            a_lum =point_intersection -lum.position  # Vecteur du point d'impact à la source lumineuse
-            # Ombrage diffus (Lambert)
-            couleur_final += (
-                obj_color *
-                cof_amb *
-                Couleur(0,0,0)
-                
-                
-            )
+     l_d = obj_color * ((l_a * K_a) + (l_i * L.dot_product(N)))
+    
+    # Conversion des valeurs de couleur pour s'assurer qu'elles sont dans la plage [0, 1]
+    R = min(1.0, max(0.0, l_d[0]))
+    V = min(1.0, max(0.0, abs(l_d[1])))
+    B = min(1.0, max(0.0, l_d[2])) 
 
-            couleur_final += (
-                obj_color*
-                obj_int.diffuse
-                * max(int_obj_normal.dot_product(a_lum), 0)
-                
-            )
-            # print(int_obj_normal.dot_product(a_lum))
-            # Ombrage spéculaire (Blinn-Phong)
-            # mi_distance = (a_lum  a_cam).normalize()  # Vecteur de mi-distance
-            couleur_final += (
-                 obj_int.specular
-                * max(a_lum.dot_product(a_cam), 0) ** brillance_speculaire
-                
-            )
-            print(max(int_obj_normal.dot_product(mi_distance), 0) ** brillance_speculaire)
+    return Couleur(R, V, B)
 
-
-
-
-       
-       return couleur_final 
-
-    def Lumiere_diffuse (self ,color_objet,cof_amb ,colour_lum ,cof_dif,norma_lum ,norma_obj  ) :
-        # return l_d = None 
-        l_o= color_objet.form_couleur.pos # colour de objet 
-        l_a = Couleur(0,0,0).form_couleur.pos # coulour ambient 
-
-        K_a = cof_amb   # coif de ambient 
-        l_i = colour_lum.form_couleur.pos  # coulor de lumer 
-        k_d = cof_dif  #cof diffuse 
-        L = norma_lum.pos  # normal de lumire 
-        N = norma_obj.pos # norma de objet 
-
-        l_d =(l_o*((l_a*K_a)+(l_i*k_d*np.dot(L,N)))) 
-        print(l_d)
-       # Conversion des valeurs de couleur pour s'assurer qu'elles sont dans la plage [0, 1]
-        R = min(1.0, max(0.0, l_d[0]))
-        V = min(1.0, max(0.0, (l_d[1])))
-        B = min(1.0, max(0.0, l_d[2])) 
-
-        return Couleur(R,V,B)
 
 
 
