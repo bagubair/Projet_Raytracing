@@ -1,10 +1,11 @@
 import numpy as np
-from position import Position
+from point import Point
 
 class Couleur:
     def __init__(self, R, V, B):
         """Écrire la couleur sous forme de np.array [R V B]"""
-        self.form_couleur = Position((R, V, B))
+        ""
+        self.form_couleur = Point((R, V, B))
 
     def __add__(self, other):
         """

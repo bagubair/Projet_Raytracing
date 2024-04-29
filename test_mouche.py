@@ -5,7 +5,7 @@ from vecteur import Vecteur
 from scene import Scene
 from objet import Objet
 from sphere import  Sphere
-from position import Position
+from point import Point
 from couleur import Couleur
 from camera import Camera
 
@@ -15,8 +15,8 @@ def main():
     HEIGHT = 20
     fichier_image = "image.ppm"
 
-    cam = Camera(Position((0, 0, -1)) )
-    lis_obj = [Sphere(Position((0,0,0)), Couleur(1, 0, 0),0.5)]
+    cam = Camera(Point((0, 0, -1)) )
+    lis_obj = [Sphere(Point((0,0,0)), Couleur(1, 0, 0),0.5)]
 
     imag_scen = Scene(WIDTH, HEIGHT, cam, lis_obj, fichier_image)
 

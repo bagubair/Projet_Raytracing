@@ -3,7 +3,7 @@ import numpy as np
 
 from vecteur import Vecteur
 from scene import Scene
-from position import Position
+from point import Point
 from camera import Camera
 
 
@@ -11,7 +11,7 @@ def main():
     WIDTH = 3
     HEIGHT = 2
     fichier_image = "image.ppm"
-    camera = Camera(Position((0,0,5)))
+    camera = Camera(Point((0,0,5)))
 
     imag_scen = Scene(WIDTH, HEIGHT,camera, fichier_image)
 

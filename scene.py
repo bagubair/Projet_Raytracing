@@ -1,58 +1,29 @@
 import numpy as np
 from vecteur import Vecteur
-from position import Position
+from point import Point
 from couleur import Couleur
 
 class Scene:
     """La classe scène contient une référence à la caméra, une liste d'objets, une liste de lumières,
     une lumière ambiante et le fichier image."""
 
-    def __init__(self, width, height, camera, list_objets,list_lumiere, fichier_image):
-        self.width = width
-        self.height = height
+    def __init__(self, camera, list_objets,list_lumiere, fichier_image):
+        
         self.camera = camera
         self.list_lumiere  = list_lumiere
         self.list_objets = list_objets
-        self.pixels = np.zeros((height, width, 3))
+        self.pixels = np.zeros((self.camera.height, self.camera.width, 3))
         self.fichier_image = fichier_image
 
     def rendre_3D_in_2D(self):
         """Convertit les coordonnées 3D des objets en coordonnées 2D pour le rendu."""
-        x0, x1 = -1.0, 1.0
-        y0, y1 = -1.0, 1.0
 
-        D = Position((1, 0, 0))
-        H = Position((0, 1, 0))
-        C = Position((0, 0, 0))
-        F = Position((0,0,5))
-        h = self.height
-        l = self.width
-
-
-        # Calcul des dimensions des pixels dans l'espace 3D projeté sur le plan 2D de l'image.
-        # dx représente la largeur d'un pixel dans la direction horizontale.
-        # dy représente la hauteur d'un pixel dans la direction verticale.
-
-        dx = (x1 - x0) / (self.width - 1)  
-        dy = (y1 - y0) / (self.height - 1)
-
-        cam = self.camera
-        p0 = Position((-1,1,0))
-
-        #test 
-        # pxy = p0 - H * (250 * dy) + D * (250 * dx)
-        # print("pxy :", pxy.pos)
-        # rayon_vue = Vecteur(F, pxy)
-        # V = pxy -F
-        # print ("V :" ,V.pos)
-        # self.modf_pixel(0, 0, self.lancer_rayon(rayon_vue))
-
-        for y in range(self.height):
-            for x in range(self.width):
-                pxy = p0 - H * (y * dy) + D * (x * dx)
-                rayon_vue = Vecteur(F, pxy)
+        for y in range(self.camera.height):
+            for x in range(self.camera.width):
+                
+                rayon_vue = self.camera.rayon(x,y) 
                 self.modf_pixel(x, y, self.lancer_rayon(rayon_vue))
-            print("{:3.0f}%".format(float(y) / float(h) * 100), end="\r")  # Affiche la progression du rendu
+            print("{:3.0f}%".format(float(y) / float(self.camera.height) * 100), end="\r")  # Affiche la progression du rendu
 
     def lancer_rayon(self, rayon_vue):
         """Lance un rayon et calcule la couleur du pixel correspondant."""
@@ -67,7 +38,7 @@ class Scene:
             return couler # s'il n'y a pas d'intersection, la couleur du pixel reste noire
         
          
-        obje_a_camera =dist_obj- self.camera.f.pos[2]
+        obje_a_camera = dist_obj - self.camera.f.pos[2]
         if  obje_a_camera <= 0 :
             return couler # s'il n'y a pas d'intersection, la couleur du pixel reste noire
         
@@ -85,12 +56,14 @@ class Scene:
     def couleur_objet(self, obj_int ,point_intersection,int_obj_normal):
     #    obj_color = material.color_at(hit_pos)  # Récupère la couleur de l'objet à la position du point d'impact
        obj_color =obj_int.couleur
+       """
        cof_amb = obj_int.ambient
        brillance_speculaire = 50
-       a_cam = point_intersection - self.camera.position    # Vecteur du point d'impact à la caméra
+       a_cam = (point_intersection - self.camera.position ).normalize()   # Vecteur du point d'impact à la caméra
        couleur_final  = Couleur(0,0,0)
     #  couleur_final = 
        cof_dif = obj_int.diffuse
+       coef_spec = obj_int.specular
 
 
 
@@ -102,38 +75,43 @@ class Scene:
             # norma_lum = norma_lum.normalize()
             # couleur_final+=self.Lumiere_diffuse (obj_color,cof_amb ,colour_lum ,cof_dif,norma_lum ,int_obj_normal  )
             # a_lum = Vecteur(point_intersection, lum.position - point_intersection)  # Vecteur du point d'impact à la source lumineuse
-
+            a_lum = (point_intersection -lum.position).normalize() 
+            diff = lum.couleur*(int_obj_normal.dot_product(a_lum)) * cof_dif
+            
+            rayan_reflech =  int_obj_normal *( 2*(((a_lum)*-1).dot_product(int_obj_normal)))  + a_lum
+            sepecul = ( (rayan_reflech.dot_product(a_cam) ) ** brillance_speculaire ) * coef_spec
+            
+            couleur_final += obj_color *( cof_amb + diff) # + lum.couleur * sepecul
+            #print(couleur_final.form_couleur.pos)
+           
+            
             a_lum =point_intersection -lum.position  # Vecteur du point d'impact à la source lumineuse
             # Ombrage diffus (Lambert)
             couleur_final += (
                 obj_color *
                 cof_amb *
-                Couleur(0,0,0)
-                
-                
+                Couleur(0,0,0)              
             )
-
             couleur_final += (
                 obj_color*
                 obj_int.diffuse
-                * max(int_obj_normal.dot_product(a_lum), 0)
-                
+                * max(int_obj_normal.dot_product(a_lum), 0)    
             )
             # print(int_obj_normal.dot_product(a_lum))
             # Ombrage spéculaire (Blinn-Phong)
             # mi_distance = (a_lum  a_cam).normalize()  # Vecteur de mi-distance
             couleur_final += (
-                 obj_int.specular
-                * max(a_lum.dot_product(a_cam), 0) ** brillance_speculaire
-                
+                obj_int.specular
+                * max(a_lum.dot_product(a_cam), 0) ** brillance_speculaire   
             )
             print(max(int_obj_normal.dot_product(mi_distance), 0) ** brillance_speculaire)
+            """
 
 
 
 
        
-       return couleur_final 
+       return  obj_color
 
     def Lumiere_diffuse (self ,color_objet,cof_amb ,colour_lum ,cof_dif,norma_lum ,norma_obj  ) :
         # return l_d = None 
@@ -169,7 +147,7 @@ class Scene:
 
         for obj in self.list_objets:
             dist = obj.intersection_distance(rayon_vue)
-            if dist is not None and (obj_intersect is None or dist < dist_min):
+            if dist is not None :# and (obj_intersect is None or dist < dist_min):
                 dist_min = dist
                 obj_intersect = obj
 
@@ -197,7 +175,7 @@ class Scene:
     def image_ppm(self):
         """Génère un fichier image au format PPM."""
         with open(self.fichier_image, "w") as img_final:
-            img_final.write("P3 {} {}\n255\n".format(self.width, self.height))
+            img_final.write("P3 {} {}\n255\n".format(self.camera.width, self.camera.height))
             for ligne in self.pixels:
                 for pixel in ligne:
                     # Utilisation de trans_en_octet pour convertir chaque composante de couleur
@@ -208,4 +186,5 @@ class Scene:
                     blue = self.trans_en_octet(pixel[2])
                     # Écriture des valeurs RGB dans le fichier
                     img_final.write("{} {} {} ".format(red, green, blue))
+
                 img_final.write("\n")

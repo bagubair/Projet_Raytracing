@@ -1,9 +1,10 @@
 import numpy as np
+from point import Point
 
 class Vecteur:
-    def __init__(self, origine, extremite):
-        self.origine = origine # point (x, y, z) 
-        self.extremite = extremite  # point (x, y, z) 
+    def __init__(self, origine:Point, extremite:Point):
+        self.origine = origine 
+        self.extremite = extremite   
         
     def __add__(self, other):
         """
