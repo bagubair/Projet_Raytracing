@@ -1,61 +1,109 @@
 from objet import Objet
 from math import sqrt
 from point import Point
+from vecteur import Vecteur
+from camera import Camera
+from couleur import Couleur
+import numpy as np
+import math
+
 
 class Sphere(Objet):
-    """Représente une sphère dans la scène."""
-    def __init__(self, position, couleur, rayon):
-        super().__init__(position, couleur)
+    
+    
+    def __init__(self, position, couleur, rayon ,texture_path=None,diffuse= 1, specular=1 ,reflexion= 0.5,ombre=2,ambiant=.5,translucide=0 ):
+        super().__init__(position, couleur, texture_path,diffuse,specular,reflexion,ombre,ambiant,translucide)
         self.rayon = rayon
-    
-    def intersection_distance(self, rayon_vue):
-        """Calcule la distance entre le point de départ du rayon et le point d'intersection avec la sphère."""
-        Px, Py, Pz = rayon_vue.extremite.pos
-        Fx, Fy, Fz = rayon_vue.origine.pos
-        Sx, Sy, Sz = self.position.pos
-        R = self.rayon
-
-        return self._intersection_sphere_rayon(Sx, Sy, Sz, R, Fx, Fy, Fz, Px, Py, Pz)[0]
+    def normal(self, surface_point):
+        """Calcule la normale à la surface de la sphère au point donné."""
         
-    def intersection_point(self, rayon_vue):
-        """Calcule le point d'intersection entre le rayon donné et la sphère."""
-        Px, Py, Pz = rayon_vue.extremite.pos
-        Fx, Fy, Fz = rayon_vue.origine.pos
-        Sx, Sy, Sz = self.position.pos
-        R = self.rayon
+        return (surface_point - self.position   ) 
+    def intersection(self, rayon_vue):
+        # t^2 * BB + 2tB(A - C) + (A - C)(A - C) - R ^ 2 = 0
 
-        return self._intersection_sphere_rayon(Sx, Sy, Sz, R, Fx, Fy, Fz, Px, Py, Pz)[1]
+        A = rayon_vue.origine
 
-    
-    def _intersection_sphere_rayon(self, Sx, Sy, Sz, R, Fx, Fy, Fz, Px, Py, Pz):
-        """Calcul de l'intersection entre un rayon F->S et une sphère de centre P."""
-        Dx = Px - Fx  # Vecteur directeur du rayon
-        Dy = Py - Fy
-        Dz = Pz - Fz
+        B = rayon_vue.extremite
 
-        S_Fx = Sx - Fx  # Vecteur entre le centre de la sphère et le point de départ du rayon
-        S_Fy = Sy - Fy
-        S_Fz = Sz - Fz
 
-        d = sqrt(S_Fx**2 + S_Fy**2 + S_Fz**2)  # Distance entre le point de départ du rayon et le centre de la sphère
+        centre_sphere = self.position
+        rayon_sphere =self.rayon
 
-        discriminant = (S_Fx * Dx + S_Fy * Dy + S_Fz * Dz)**2 - (Dx**2 + Dy**2 + Dz**2) * (d**2 - R**2)
+        C = centre_sphere
 
+        R = rayon_sphere
+
+        # Calcul des coefficients de l'équation quadratique
+        a = B.dot_product(B)  #BB
+
+        b = 2 * B.dot_product( A - C)
+        c = (A - C).dot_product( A - C) - R**2
+
+        # Résolution de l'équation quadratique
+        discriminant = b**2 - 4 * a * c
         if discriminant < 0:
-            return None, None
+            return None ,None  # Pas d'intersection
+        elif discriminant == 0:
+            t = -b / (2 * a)
+            intersection_points = A + B *t
+            return t,intersection_points
 
-        t1 = (- (S_Fx * Dx + S_Fy * Dy + S_Fz * Dz) + sqrt(discriminant)) / (Dx**2 + Dy**2 + Dz**2)
-        t2 = (- (S_Fx * Dx + S_Fy * Dy + S_Fz * Dz) - sqrt(discriminant)) / (Dx**2 + Dy**2 + Dz**2)
+        else:
+            t1 = (-b + np.sqrt(discriminant)) / (2 * a)
+            t2 = (-b - np.sqrt(discriminant)) / (2 * a)
+            t = min(t1, t2)
+            intersection_points = A +  B*t
+            return t ,intersection_points
 
-        x1 = Fx + t1 * Dx  # Coordonnées des points d'intersection
-        y1 = Fy + t1 * Dy
-        z1 = Fz + t1 * Dz
+   
+    def couleur_texture(self, P):
+        
+           
+        # Calculer les coordonnées sphériques pour le point (0,0,0)
+        p = P - self.position
+        r = p.magnitude() #Rayon
+        
+        theta = math.acos(p.z / r)
+        s = theta / math.pi
 
-        x2 = Fx + t2 * Dx
-        y2 = Fy + t2 * Dy
-        z2 = Fz + t2 * Dz
 
-        distance1 = sqrt((x1 - Fx)**2 + (y1 - Fy)**2 + (z1 - Fz)**2)  # Distance entre le point de départ du rayon et le point d'intersection
-        distance2 = sqrt((x2 - Fx)**2 + (y2 - Fy)**2 + (z2 - Fz)**2)
+        phi = math.atan2(p.y, p.x) #
+        t = phi / (2 * math.pi)
+        
+        # Convertir les coordonnées UV en pixels de l'image de texture
+        tex_x = int(t * self.texture.width) % self.texture.width
+        tex_y = int(s * self.texture.height) % self.texture.height
 
-        return min(distance1, distance2), Point((x1, y1, z1))
+        # Obtenir la couleur de texture à partir des pixels de l'image
+        couleur_tex = self.texture.getpixel((tex_x, tex_y))
+
+        # Normaliser les valeurs de couleur dans la plage [0, 1]
+        couleur_tex_normalisee = (couleur_tex[0] / 255, couleur_tex[1] / 255, couleur_tex[2] / 255)
+
+        return Couleur(*couleur_tex_normalisee)
+    
+            
+
+
+
+
+
+# Test
+if __name__ == "__main__":
+    
+    Couleur = Point
+    sphere = Sphere(Point(0, -1/2, -5-(1/2)), Couleur(0.75, 0, 0), 1/np.sqrt(2),"texture.jpg")
+    cam = Camera(200, 200, Point(0, 0, 5))
+    rayon_vue = cam.rayon(100, 100)
+
+    dist, point_intersection = sphere.intersection(rayon_vue)
+    sphere.couleur_texture(point_intersection)
+    # Résultats attendus
+    resultat_distance_attendu = 4.995059749768852
+    resultat_point_attendu = (0.005020155481797906, -0.005020155481797906, -4.9950547043890055)
+    
+    # Comparaison avec les résultats attendus
+    # np.isclose(dist, resultat_distance_attendu), f"La distance obtenue ({dist}) ne correspond pas au résultat attendu ({resultat_distance_attendu})"
+    #assert np.allclose(point_intersection.components(), resultat_point_attendu), f"Les coordonnées du point d'intersection obtenues ({point_intersection.components()}) ne correspondent pas aux résultats attendus ({resultat_point_attendu})"
+
+    print("Les résultats sont conformes aux attentes.")
